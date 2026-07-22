@@ -1,0 +1,2 @@
+# Amanic
+chatgpt.com
