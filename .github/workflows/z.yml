@@ -5,6 +5,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: write
+
 jobs:
   build:
 
@@ -16,14 +19,23 @@ jobs:
 
       - name: Install FontForge
         run: |
-          sudo apt-get update
-          sudo apt-get install -y fontforge python3-fontforge
+          sudo apt update
+          sudo apt install -y fontforge python3-fontforge
 
-      - name: Build Font
-        run: fontforge -script build_font.py
+      - name: Build font
+        run: |
+          fontforge -script build_font.py
 
-      - name: Upload font
-        uses: actions/upload-artifact@v4
-        with:
-          name: font
-          path: MyFont.ttf
+      - name: Commit generated font
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+          git add MyFont.ttf
+
+          if git diff --cached --quiet; then
+            echo "No changes"
+          else
+            git commit -m "Auto build font"
+            git push
+          fi
