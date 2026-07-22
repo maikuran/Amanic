@@ -2,49 +2,49 @@ import os
 import fontforge
 
 LETTER_DIR = "Letter"
-OUTPUT = "MyFont.ttf"
+OUTPUT_FONT = "MyFont.ttf"
 
 font = fontforge.font()
+
 font.fontname = "MyFont"
 font.familyname = "MyFont"
 font.fullname = "MyFont"
+
+font.encoding = "UnicodeFull"
 
 font.em = 1000
 font.ascent = 800
 font.descent = 200
 
-for file in sorted(os.listdir(LETTER_DIR)):
-    if not file.lower().endswith(".png"):
+for filename in sorted(os.listdir(LETTER_DIR)):
+    if not filename.lower().endswith(".png"):
         continue
 
-    name = os.path.splitext(file)[0]
+    char = os.path.splitext(filename)[0]
 
-    if len(name) != 1:
-        print(f"Skip {file}")
+    if len(char) != 1:
+        print(f"Skip: {filename}")
         continue
 
-    codepoint = ord(name)
+    codepoint = ord(char)
 
     glyph = font.createChar(codepoint)
 
-    path = os.path.join(LETTER_DIR, file)
-    glyph.importOutlines(path)
+    png = os.path.join(LETTER_DIR, filename)
+
+    glyph.importOutlines(png)
+    glyph.autoTrace()
+    glyph.removeOverlap()
+    glyph.correctDirection()
+    glyph.round()
+    glyph.simplify()
 
     glyph.left_side_bearing = 0
     glyph.right_side_bearing = 0
-
-    glyph.autoTrace()
-
-    glyph.removeOverlap()
-
-    glyph.simplify()
-
-    glyph.round()
-
     glyph.width = 1000
 
-    print(f"{name} U+{codepoint:04X}")
+    print(f"Added {char} U+{codepoint:04X}")
 
-font.generate(OUTPUT)
+font.generate(OUTPUT_FONT)
 
-print("Done")
+print("Finished.")
