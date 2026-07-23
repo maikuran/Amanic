@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<title>Glyph PNG Painter</title>
+
+<style>
+
+body{
+    margin:15px;
+    background:#f3f3f3;
+    font-family:sans-serif;
+}
+
+h2{
+    margin-top:0;
+}
+
+#downloadAll{
+    margin-bottom:15px;
+    padding:10px 18px;
+    font-size:16px;
+}
+
+#container{
+    display:grid;
+    gap:18px;
+}
+
+@media(min-width:1200px){
+#container{
+grid-template-columns:repeat(5,1fr);
+}
+}
+
+@media(min-width:700px) and (max-width:1199px){
+#container{
+grid-template-columns:repeat(2,1fr);
+}
+}
+
+@media(max-width:699px){
+#container{
+grid-template-columns:1fr;
+}
+}
+
+.panel{
+    background:white;
+    border-radius:10px;
+    padding:10px;
+    box-shadow:0 2px 8px rgba(0,0,0,.15);
+}
+
+input{
+    width:100%;
+    box-sizing:border-box;
+    margin-bottom:8px;
+    font-size:18px;
+    padding:6px;
+}
+
+canvas{
+    width:100%;
+    aspect-ratio:1;
+    border:1px solid black;
+    background:white;
+    image-rendering:pixelated;
+
+    touch-action:none;
+    user-select:none;
+    -webkit-user-select:none;
+}
+
+.buttons{
+    display:flex;
+    gap:5px;
+    margin-top:8px;
+}
+
+.buttons button{
+    flex:1;
+    padding:8px;
+    font-size:15px;
+}
+
+</style>
+</head>
+
+<body>
+
+<h2>Glyph PNG Painter</h2>
+
+<button id="downloadAll">10個一括ダウンロード</button>
+
+<div id="container"></div>
+
+<script>
+
+const container=document.getElementById("container");
+
+for(let i=0;i<10;i++){
+
+const panel=document.createElement("div");
+panel.className="panel";
+
+const input=document.createElement("input");
+input.placeholder="〇〇";
+
+const canvas=document.createElement("canvas");
+
+const size=100;
+
+const ratio=window.devicePixelRatio||1;
+
+canvas.width=size*ratio;
+canvas.height=size*ratio;
+
+const ctx=canvas.getContext("2d");
+
+ctx.scale(ratio,ratio);
+
+ctx.fillStyle="white";
+ctx.fillRect(0,0,size,size);
+
+ctx.lineCap="round";
+ctx.lineJoin="round";
+
+let drawing=false;
+
+let color="black";
+let width=5;
+
+function getPos(e){
+
+const rect=canvas.getBoundingClientRect();
+
+const scale=size/rect.width;
+
+return{
+x:(e.clientX-rect.left)*scale,
+y:(e.clientY-rect.top)*scale
+};
+
+}
+
+canvas.addEventListener("pointerdown",e=>{
+
+drawing=true;
+
+canvas.setPointerCapture(e.pointerId);
+
+const p=getPos(e);
+
+ctx.beginPath();
+ctx.moveTo(p.x,p.y);
+
+});
+
+canvas.addEventListener("pointermove",e=>{
+
+if(!drawing)return;
+
+e.preventDefault();
+
+ctx.strokeStyle=color;
+ctx.lineWidth=width;
+
+const p=getPos(e);
+
+ctx.lineTo(p.x,p.y);
+ctx.stroke();
+
+});
+
+function stop(){
+
+drawing=false;
+
+}
+
+canvas.addEventListener("pointerup",stop);
+canvas.addEventListener("pointercancel",stop);
+canvas.addEventListener("pointerleave",stop);
+
+const buttons=document.createElement("div");
+buttons.className="buttons";
+
+const pen=document.createElement("button");
+pen.textContent="ペン";
+
+const eraser=document.createElement("button");
+eraser.textContent="消しゴム";
+
+const clear=document.createElement("button");
+clear.textContent="全消去";
+
+pen.onclick=()=>{
+
+color="black";
+width=5;
+
+};
+
+eraser.onclick=()=>{
+
+color="white";
+width=12;
+
+};
+
+clear.onclick=()=>{
+
+ctx.fillStyle="white";
+ctx.fillRect(0,0,size,size);
+
+};
+
+buttons.appendChild(pen);
+buttons.appendChild(eraser);
+buttons.appendChild(clear);
+
+panel.appendChild(input);
+panel.appendChild(canvas);
+panel.appendChild(buttons);
+
+container.appendChild(panel);
+
+}
+
+document.getElementById("downloadAll").onclick=()=>{
+
+document.querySelectorAll(".panel").forEach(panel=>{
+
+const input=panel.querySelector("input");
+const canvas=panel.querySelector("canvas");
+
+if(input.value.trim()=="") return;
+
+const a=document.createElement("a");
+
+a.download=input.value.trim()+".png";
+
+a.href=canvas.toDataURL("image/png");
+
+a.click();
+
+});
+
+};
+
+</script>
+
+</body>
+</html>
