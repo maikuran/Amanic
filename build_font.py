@@ -1,16 +1,17 @@
 import os
+import subprocess
+import tempfile
 import fontforge
 
 LETTER_DIR = "Letter"
 OUTPUT_FONT = "MyFont.ttf"
 
 font = fontforge.font()
+font.encoding = "UnicodeFull"
 
 font.fontname = "MyFont"
 font.familyname = "MyFont"
 font.fullname = "MyFont"
-
-font.encoding = "UnicodeFull"
 
 font.em = 1000
 font.ascent = 800
@@ -23,28 +24,35 @@ for filename in sorted(os.listdir(LETTER_DIR)):
     char = os.path.splitext(filename)[0]
 
     if len(char) != 1:
-        print(f"Skip: {filename}")
+        print(f"Skip {filename}")
         continue
-
-    codepoint = ord(char)
-
-    glyph = font.createChar(codepoint)
 
     png = os.path.join(LETTER_DIR, filename)
 
-    glyph.importOutlines(png)
-    glyph.autoTrace()
+    svg = os.path.join(tempfile.gettempdir(), char + ".svg")
+
+    subprocess.run([
+        "vtracer",
+        "--input",
+        png,
+        "--output",
+        svg
+    ], check=True)
+
+    glyph = font.createChar(ord(char))
+
+    glyph.importOutlines(svg)
     glyph.removeOverlap()
     glyph.correctDirection()
-    glyph.round()
     glyph.simplify()
+    glyph.round()
 
     glyph.left_side_bearing = 0
     glyph.right_side_bearing = 0
     glyph.width = 1000
 
-    print(f"Added {char} U+{codepoint:04X}")
+    print(f"Added {char}")
 
 font.generate(OUTPUT_FONT)
 
-print("Finished.")
+print("Finished")
