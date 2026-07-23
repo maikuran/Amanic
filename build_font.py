@@ -3,8 +3,7 @@ import subprocess
 import tempfile
 
 import fontforge
-from pillow import Image
-
+from PIL import Image
 # ==========================
 # 設定
 # ==========================
