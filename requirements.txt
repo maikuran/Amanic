@@ -1,3 +1,4 @@
-vtracer
-Pillow
 
+Pillow
+fontforge
+vtracer
