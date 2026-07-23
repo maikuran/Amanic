@@ -6,6 +6,10 @@ import fontforge
 LETTER_DIR = "Letter"
 OUTPUT_FONT = "MyFont.ttf"
 
+EM = 1000
+ASCENT = 800
+DESCENT = 200
+
 font = fontforge.font()
 font.encoding = "UnicodeFull"
 
@@ -13,9 +17,9 @@ font.fontname = "MyFont"
 font.familyname = "MyFont"
 font.fullname = "MyFont"
 
-font.em = 1000
-font.ascent = 800
-font.descent = 200
+font.em = EM
+font.ascent = ASCENT
+font.descent = DESCENT
 
 for filename in sorted(os.listdir(LETTER_DIR)):
 
@@ -25,11 +29,10 @@ for filename in sorted(os.listdir(LETTER_DIR)):
     char = os.path.splitext(filename)[0]
 
     if len(char) != 1:
-        print("Skip", filename)
+        print("Skip:", filename)
         continue
 
     png = os.path.join(LETTER_DIR, filename)
-
     svg = os.path.join(tempfile.gettempdir(), char + ".svg")
 
     subprocess.run([
@@ -49,29 +52,40 @@ for filename in sorted(os.listdir(LETTER_DIR)):
     glyph.simplify()
     glyph.round()
 
-    # バウンディングボックス取得
     xmin, ymin, xmax, ymax = glyph.boundingBox()
 
-    if xmax == xmin or ymax == ymin:
+    if xmax <= xmin or ymax <= ymin:
         print("Empty:", char)
         continue
 
-    # EMサイズへ収める
-    scale = 750 / max(xmax - xmin, ymax - ymin)
+    width = xmax - xmin
+    height = ymax - ymin
+
+    # 高さ800に合わせる
+    scale = ASCENT / height
+
+    # 幅が1000を超えるなら幅優先
+    if width * scale > EM:
+        scale = EM / width
+
+    tx = (EM - width * scale) / 2 - xmin * scale
+    ty = -ymin * scale
 
     glyph.transform((
         scale, 0,
         0, scale,
-        -xmin * scale + 125,
-        -ymin * scale + 125
+        tx, ty
     ))
+
+    glyph.removeOverlap()
+    glyph.correctDirection()
+    glyph.round()
 
     glyph.left_side_bearing = 0
     glyph.right_side_bearing = 0
-    glyph.width = 1000
+    glyph.width = EM
 
     print("Added", char)
 
 font.generate(OUTPUT_FONT)
-
 print("Finished")
