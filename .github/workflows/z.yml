@@ -1,4 +1,4 @@
-name: Build Font
+name: Build Fontx
 
 on:
   push:
