@@ -13,18 +13,19 @@ font.fontname = "MyFont"
 font.familyname = "MyFont"
 font.fullname = "MyFont"
 
-font.em = 100
-font.ascent = 80
-font.descent = 20
+font.em = 1000
+font.ascent = 800
+font.descent = 200
 
 for filename in sorted(os.listdir(LETTER_DIR)):
+
     if not filename.lower().endswith(".png"):
         continue
 
     char = os.path.splitext(filename)[0]
 
     if len(char) != 1:
-        print(f"Skip {filename}")
+        print("Skip", filename)
         continue
 
     png = os.path.join(LETTER_DIR, filename)
@@ -33,25 +34,43 @@ for filename in sorted(os.listdir(LETTER_DIR)):
 
     subprocess.run([
         "vtracer",
-        "--input",
-        png,
-        "--output",
-        svg
+        "--input", png,
+        "--output", svg,
+        "--colormode", "binary"
     ], check=True)
 
     glyph = font.createChar(ord(char))
+    glyph.clear()
 
     glyph.importOutlines(svg)
+
     glyph.removeOverlap()
     glyph.correctDirection()
     glyph.simplify()
     glyph.round()
 
+    # バウンディングボックス取得
+    xmin, ymin, xmax, ymax = glyph.boundingBox()
+
+    if xmax == xmin or ymax == ymin:
+        print("Empty:", char)
+        continue
+
+    # EMサイズへ収める
+    scale = 750 / max(xmax - xmin, ymax - ymin)
+
+    glyph.transform((
+        scale, 0,
+        0, scale,
+        -xmin * scale + 125,
+        -ymin * scale + 125
+    ))
+
     glyph.left_side_bearing = 0
     glyph.right_side_bearing = 0
     glyph.width = 1000
 
-    print(f"Added {char}")
+    print("Added", char)
 
 font.generate(OUTPUT_FONT)
 
