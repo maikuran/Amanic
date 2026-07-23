@@ -1,14 +1,29 @@
 import os
 import subprocess
 import tempfile
-import fontforge
 
-LETTER_DIR = "Letter"
+import fontforge
+from PIL import Image
+
+# ==========================
+# 設定
+# ==========================
+
+INPUT_DIR = "Letter"
+TEMP_DIR = os.path.join(tempfile.gettempdir(), "LetterTransparent")
 OUTPUT_FONT = "MyFont.ttf"
 
-EM = 1000
-ASCENT = 800
-DESCENT = 200
+THRESHOLD = 240
+
+EM = 100
+ASCENT = 80
+DESCENT = 20
+
+os.makedirs(TEMP_DIR, exist_ok=True)
+
+# ==========================
+# FontForge
+# ==========================
 
 font = fontforge.font()
 font.encoding = "UnicodeFull"
@@ -21,7 +36,11 @@ font.em = EM
 font.ascent = ASCENT
 font.descent = DESCENT
 
-for filename in sorted(os.listdir(LETTER_DIR)):
+# ==========================
+# 全画像処理
+# ==========================
+
+for filename in sorted(os.listdir(INPUT_DIR)):
 
     if not filename.lower().endswith(".png"):
         continue
@@ -32,15 +51,46 @@ for filename in sorted(os.listdir(LETTER_DIR)):
         print("Skip:", filename)
         continue
 
-    png = os.path.join(LETTER_DIR, filename)
-    svg = os.path.join(tempfile.gettempdir(), char + ".svg")
+    input_png = os.path.join(INPUT_DIR, filename)
+
+    # --------------------------
+    # 白を透明化
+    # --------------------------
+
+    img = Image.open(input_png).convert("RGBA")
+
+    pixels = img.load()
+    width, height = img.size
+
+    for y in range(height):
+        for x in range(width):
+
+            r, g, b, a = pixels[x, y]
+
+            if r >= THRESHOLD and g >= THRESHOLD and b >= THRESHOLD:
+                pixels[x, y] = (255, 255, 255, 0)
+            else:
+                pixels[x, y] = (0, 0, 0, 255)
+
+    clean_png = os.path.join(TEMP_DIR, filename)
+    img.save(clean_png)
+
+    # --------------------------
+    # SVG化
+    # --------------------------
+
+    svg = os.path.join(TEMP_DIR, char + ".svg")
 
     subprocess.run([
         "vtracer",
-        "--input", png,
+        "--input", clean_png,
         "--output", svg,
         "--colormode", "binary"
     ], check=True)
+
+    # --------------------------
+    # FontForge
+    # --------------------------
 
     glyph = font.createChar(ord(char))
     glyph.clear()
@@ -61,10 +111,8 @@ for filename in sorted(os.listdir(LETTER_DIR)):
     width = xmax - xmin
     height = ymax - ymin
 
-    # 高さ800に合わせる
     scale = ASCENT / height
 
-    # 幅が1000を超えるなら幅優先
     if width * scale > EM:
         scale = EM / width
 
@@ -85,7 +133,12 @@ for filename in sorted(os.listdir(LETTER_DIR)):
     glyph.right_side_bearing = 0
     glyph.width = EM
 
-    print("Added", char)
+    print("Added:", char)
+
+# ==========================
+# フォント生成
+# ==========================
 
 font.generate(OUTPUT_FONT)
-print("Finished")
+
+print("Finished!")
