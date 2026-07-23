@@ -13,9 +13,9 @@ font.fontname = "MyFont"
 font.familyname = "MyFont"
 font.fullname = "MyFont"
 
-font.em = 1000
-font.ascent = 800
-font.descent = 200
+font.em = 100
+font.ascent = 80
+font.descent = 20
 
 for filename in sorted(os.listdir(LETTER_DIR)):
     if not filename.lower().endswith(".png"):
