@@ -10,35 +10,34 @@ permissions:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - name: Install FontForge
+      - name: Install system packages
         run: |
           sudo apt-get update
           sudo apt-get install -y \
             fontforge \
-            python3-fontforge
+            python3-fontforge \
+            cargo
 
       - name: Install VTracer
         run: |
           cargo install vtracer
-
-      - name: Add Cargo to PATH
-        run: |
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
 
       - name: Install Python packages
         run: |
-          pip install -r requirements.txt
+          python -m pip install --upgrade pip
+          python -m pip install Pillow
 
       - name: Build font
         run: |
@@ -46,8 +45,8 @@ jobs:
 
       - name: Commit font
         run: |
-          git config user.name github-actions
-          git config user.email github-actions@github.com
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
 
           git add MyFont.ttf
 
