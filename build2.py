@@ -1,9 +1,11 @@
+
 import os
 import subprocess
 import tempfile
 
 import fontforge
 from PIL import Image
+
 # ==========================
 # 設定
 # ==========================
@@ -44,7 +46,19 @@ for filename in sorted(os.listdir(INPUT_DIR)):
     if not filename.lower().endswith(".png"):
         continue
 
-    char = os.path.splitext(filename)[0]
+    # ==========================
+    # Glyph文字を取得
+    # ==========================
+    # os.path.splitext()ではなく、
+    # ".png"を末尾から直接取り除く
+    #
+    # 例:
+    # A.png  -> A
+    # a.png  -> a
+    # ..png  -> .
+    # ==========================
+
+    char = filename[:-4]
 
     if len(char) != 1:
         print("Skip:", filename)
@@ -104,16 +118,24 @@ for filename in sorted(os.listdir(INPUT_DIR)):
     xmin, ymin, xmax, ymax = glyph.boundingBox()
 
     if xmax <= xmin or ymax <= ymin:
-        print("Empty:", char)
+        print("Empty:", repr(char))
         continue
 
     width = xmax - xmin
     height = ymax - ymin
 
+    # --------------------------
+    # サイズ調整
+    # --------------------------
+
     scale = ASCENT / height
 
     if width * scale > EM:
         scale = EM / width
+
+    # --------------------------
+    # 中央配置
+    # --------------------------
 
     tx = (EM - width * scale) / 2 - xmin * scale
     ty = -ymin * scale
@@ -128,11 +150,15 @@ for filename in sorted(os.listdir(INPUT_DIR)):
     glyph.correctDirection()
     glyph.round()
 
+    # --------------------------
+    # 幅を統一
+    # --------------------------
+
     glyph.left_side_bearing = 0
     glyph.right_side_bearing = 0
     glyph.width = EM
 
-    print("Added:", char)
+    print("Added:", repr(char))
 
 # ==========================
 # フォント生成
