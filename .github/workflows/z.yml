@@ -71,6 +71,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes."
           else
+            git pull
             git commit -m "Auto build font"
             git push
           fi
