@@ -45,30 +45,30 @@ for filename in sorted(os.listdir(INPUT_DIR)):
     if not filename.lower().endswith(".png"):
         continue
 
-    # ".png" を末尾から4文字削除
-    # 例:
+    # ==========================
+    # Glyph文字を取得
+    # ==========================
+    #
     # A.png  -> A
-    # a.png  -> a
     # 1.png  -> 1
     # ..png  -> .
+    #
     char = filename[:-4]
 
     if len(char) != 1:
         print("Skip:", filename)
         continue
 
+    code = ord(char)
+
     print("Processing:", filename, "->", repr(char))
 
     input_png = os.path.join(INPUT_DIR, filename)
 
     # ==========================
-    # Unicodeコードポイント
+    # 一時ファイル
     # ==========================
 
-    code = ord(char)
-
-    # 一時ファイル名には文字そのものを使わない
-    # "." などでも安全に処理できる
     clean_png = os.path.join(
         TEMP_DIR,
         f"clean_U{code:04X}.png"
@@ -80,7 +80,7 @@ for filename in sorted(os.listdir(INPUT_DIR)):
     )
 
     # ==========================
-    # 白を透明化
+    # PNG読み込み
     # ==========================
 
     img = Image.open(input_png).convert("RGBA")
@@ -88,12 +88,20 @@ for filename in sorted(os.listdir(INPUT_DIR)):
     pixels = img.load()
     width, height = img.size
 
+    # ==========================
+    # 白を透明化
+    # ==========================
+
     for y in range(height):
         for x in range(width):
 
             r, g, b, a = pixels[x, y]
 
-            if r >= THRESHOLD and g >= THRESHOLD and b >= THRESHOLD:
+            if (
+                r >= THRESHOLD
+                and g >= THRESHOLD
+                and b >= THRESHOLD
+            ):
                 pixels[x, y] = (255, 255, 255, 0)
             else:
                 pixels[x, y] = (0, 0, 0, 255)
@@ -124,13 +132,23 @@ for filename in sorted(os.listdir(INPUT_DIR)):
 
     glyph.importOutlines(svg)
 
+    # ==========================
+    # 輪郭整理
+    # ==========================
+
     glyph.removeOverlap()
     glyph.correctDirection()
     glyph.simplify()
     glyph.round()
 
     # ==========================
-    # Bounding Box
+    # 元のGlyphサイズを維持
+    # ==========================
+    #
+    # ここではscaleを計算しない。
+    # 元画像からSVG化されたGlyphの
+    # 縦横比・形状・サイズをそのまま使用する。
+    #
     # ==========================
 
     xmin, ymin, xmax, ymax = glyph.boundingBox()
@@ -139,36 +157,30 @@ for filename in sorted(os.listdir(INPUT_DIR)):
         print("Empty:", repr(char))
         continue
 
-    width = xmax - xmin
-    height = ymax - ymin
-
     # ==========================
-    # サイズ調整
+    # 横方向だけ中央配置
     # ==========================
-
-    scale = ASCENT / height
-
-    if width * scale > EM:
-        scale = EM / width
-
-    # ==========================
-    # 中央配置
+    #
+    # サイズ・形状は変更しない。
+    # X方向の位置だけ調整する。
+    #
     # ==========================
 
-    tx = (EM - width * scale) / 2 - xmin * scale
-    ty = -ymin * scale
+    glyph_width = xmax - xmin
+
+    tx = (EM - glyph_width) / 2 - xmin
 
     glyph.transform((
-        scale,
+        1,
         0,
         0,
-        scale,
+        1,
         tx,
-        ty
+        0
     ))
 
     # ==========================
-    # 輪郭修正
+    # 輪郭整理
     # ==========================
 
     glyph.removeOverlap()
@@ -176,14 +188,21 @@ for filename in sorted(os.listdir(INPUT_DIR)):
     glyph.round()
 
     # ==========================
-    # Glyph幅を統一
+    # Glyph幅
     # ==========================
 
     glyph.left_side_bearing = 0
     glyph.right_side_bearing = 0
+
+    # Glyphの幅だけEMに合わせる
     glyph.width = EM
 
-    print("Added:", repr(char), f"(U+{code:04X})")
+    print(
+        "Added:",
+        repr(char),
+        f"(U+{code:04X})",
+        f"size={glyph_width:.2f}"
+    )
 
 # ==========================
 # フォント生成
