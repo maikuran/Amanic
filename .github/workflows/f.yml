@@ -1,0 +1,54 @@
+name: Build Fontx
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            fontforge \
+            python3-fontforge \
+            python3-pil \
+            cargo
+
+      - name: Install VTracer
+        run: |
+          cargo install vtracer
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+      - name: Build font
+        run: |
+          fontforge -script build2.py
+
+      - name: Commit font
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+
+          git add MyFont2.ttf
+
+          if git diff --cached --quiet; then
+            echo "No changes."
+          else
+            git commit -m "Auto build font"
+            git push
+          fi     
